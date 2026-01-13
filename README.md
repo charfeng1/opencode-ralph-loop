@@ -4,6 +4,14 @@ Minimal Ralph Loop plugin for [opencode](https://opencode.ai) - auto-continues u
 
 Inspired by Anthropic's Ralph Wiggum technique for iterative, self-referential AI development loops.
 
+## Why this plugin?
+
+[oh-my-opencode](https://github.com/code-yeongyu/oh-my-opencode) is a fantastic, feature-rich plugin that includes Ralph Loop along with many other powerful capabilities like the Sisyphus orchestrator, background agents, and more.
+
+However, we personally found the full suite a bit heavy for our workflow. We also noticed others in the community expressing interest in specific features without needing the complete package. So we extracted just the Ralph Loop functionality into this standalone, lightweight plugin.
+
+If you want the full-featured experience, definitely check out oh-my-opencode. If you just want auto-continuation loops with minimal overhead, this plugin is for you.
+
 ## Installation
 
 Add to your `~/.config/opencode/opencode.json`:
@@ -80,16 +88,6 @@ Add `.opencode/ralph-loop.local.md` to your `.gitignore`.
 - **Completion detection**: Scans session messages for DONE promise
 - **Slash commands**: `/ralph-loop` and `/cancel-ralph`
 - **Skills**: AI can invoke the loop autonomously when appropriate
-
-## Comparison
-
-| Feature | This Plugin | oh-my-opencode |
-|---------|-------------|----------------|
-| Ralph Loop | Yes | Yes |
-| Sisyphus Orchestrator | No | Yes |
-| Background Agents | No | Yes |
-| Lines of code | ~150 | ~500+ |
-| Dependencies | None | Many |
 
 ## Credits
 
