@@ -295,8 +295,19 @@ Located at: .opencode/ralph-loop.local.md`;
         const newState = { ...state, iteration: state.iteration + 1, sessionId };
         writeState(directory, newState);
 
-        // Inject continuation prompt using client.session.prompt()
-        const continuationPrompt = `Continue from where you left off. (Iteration ${newState.iteration}/${newState.maxIterations})\n\nWhen the task is fully complete, output: <promise>DONE</promise>`;
+        // Inject continuation prompt with original task (like Anthropic's ralph-wiggum)
+        const continuationPrompt = `[RALPH LOOP - ITERATION ${newState.iteration}/${newState.maxIterations}]
+
+Your previous attempt did not output the completion promise. Continue working on the task.
+
+IMPORTANT:
+- Review your progress so far
+- Continue from where you left off
+- When FULLY complete, output: <promise>DONE</promise>
+- Do not stop until the task is truly done
+
+Original task:
+${state.prompt || "(no task specified)"}`;
 
         try {
           await client.session.prompt({
