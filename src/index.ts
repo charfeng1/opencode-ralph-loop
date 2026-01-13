@@ -46,9 +46,8 @@ function setupSkillsAndCommands(): void {
         try {
           mkdirSync(destSkillDir, { recursive: true });
           cpSync(srcSkillDir, destSkillDir, { recursive: true });
-          console.log(`[ralph-loop] Installed skill: ${skill}`);
-        } catch (e) {
-          console.error(`[ralph-loop] Failed to install skill ${skill}:`, e);
+        } catch {
+          // Silent fail
         }
       }
     }
@@ -66,9 +65,8 @@ function setupSkillsAndCommands(): void {
         try {
           mkdirSync(commandsDir, { recursive: true });
           cpSync(srcCmd, destCmd);
-          console.log(`[ralph-loop] Installed command: ${cmd}`);
-        } catch (e) {
-          console.error(`[ralph-loop] Failed to install command ${cmd}:`, e);
+        } catch {
+          // Silent fail
         }
       }
     }
@@ -176,8 +174,8 @@ async function isComplete(client: any, sessionId: string, directory: string): Pr
     if (COMPLETION_TAG.test(responseText)) {
       return true;
     }
-  } catch (e) {
-    console.error("[ralph-loop] Failed to check completion:", e);
+  } catch {
+    // Silent fail
   }
 
   return false;
@@ -285,13 +283,11 @@ Located at: .opencode/ralph-loop.local.md`;
         if (state.sessionId && state.sessionId !== sessionId) return;
 
         if (await isComplete(client, sessionId, directory)) {
-          console.log("[ralph-loop] Task complete - DONE promise found");
           clearState(directory);
           return;
         }
 
         if (state.iteration >= state.maxIterations) {
-          console.log(`[ralph-loop] Max iterations (${state.maxIterations}) reached`);
           clearState(directory);
           return;
         }
@@ -309,9 +305,8 @@ Located at: .opencode/ralph-loop.local.md`;
               parts: [{ type: "text", text: continuationPrompt }]
             }
           });
-          console.log(`[ralph-loop] Injected continuation (iteration ${newState.iteration})`);
-        } catch (e) {
-          console.error("[ralph-loop] Failed to inject continuation:", e);
+        } catch {
+          // Silent fail - don't pollute TUI
         }
       }
 
