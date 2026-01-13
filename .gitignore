@@ -5,3 +5,4 @@ dist/
 
 # Don't commit local state files
 ralph-loop.local.md
+.opencode/

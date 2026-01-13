@@ -24,6 +24,8 @@ Add to your `~/.config/opencode/opencode.json`:
 
 Restart opencode. That's it!
 
+On first run, the plugin will automatically install skills and commands to your `~/.config/opencode/` directory.
+
 ## Usage
 
 ### Start a loop
@@ -40,13 +42,13 @@ The AI will work on your task and automatically continue until completion.
 /cancel-ralph
 ```
 
-### Check status
+### Get help
 
 ```
-/ralph-status
+/help
 ```
 
-### How it works
+## How it works
 
 1. `/ralph-loop` creates a state file at `.opencode/ralph-loop.local.md`
 2. When the AI goes idle, the plugin checks if `<promise>DONE</promise>` was output
@@ -54,7 +56,7 @@ The AI will work on your task and automatically continue until completion.
 4. Loop continues until DONE is found or max iterations (100) reached
 5. State file is deleted when complete
 
-### Completion
+### Completion Promise
 
 When the AI finishes a task, it outputs:
 
@@ -62,7 +64,7 @@ When the AI finishes a task, it outputs:
 <promise>DONE</promise>
 ```
 
-This signals the loop to stop.
+**Important:** The AI should ONLY output this when the task is COMPLETELY and VERIFIABLY finished. False promises are not allowed.
 
 ## State File
 
@@ -90,10 +92,31 @@ Add `.opencode/ralph-loop.local.md` to your `.gitignore`.
 ## Features
 
 - **Plug-and-play**: Just add to config and restart - no manual setup
-- **Minimal**: ~200 lines, no bloat
+- **Auto-setup**: Skills and commands are automatically installed on first run
+- **Minimal**: ~300 lines, no bloat
 - **Project-relative**: State file in `.opencode/`, not global
 - **Completion detection**: Scans session messages for DONE promise
-- **Tools**: `/ralph-loop`, `/cancel-ralph`, and `/ralph-status`
+- **Progressive context**: Skills provide context only when needed
+- **Commands**: `/ralph-loop`, `/cancel-ralph`, and `/help`
+
+## Architecture
+
+Following Anthropic's Claude Code plugin pattern:
+
+```
+opencode-ralph-loop/
+├── src/
+│   └── index.ts        # Main plugin with event hooks and tools
+├── skills/
+│   ├── ralph-loop/     # Progressive context for starting loops
+│   ├── cancel-ralph/   # Context for cancellation
+│   └── help/           # Plugin documentation
+├── commands/
+│   ├── ralph-loop.md   # Slash command for starting
+│   ├── cancel-ralph.md # Slash command for cancelling
+│   └── help.md         # Slash command for help
+└── package.json
+```
 
 ## Credits
 
