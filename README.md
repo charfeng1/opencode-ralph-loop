@@ -40,6 +40,12 @@ The AI will work on your task and automatically continue until completion.
 /cancel-ralph
 ```
 
+### Check status
+
+```
+/ralph-status
+```
+
 ### How it works
 
 1. `/ralph-loop` creates a state file at `.opencode/ralph-loop.local.md`
@@ -83,11 +89,11 @@ Add `.opencode/ralph-loop.local.md` to your `.gitignore`.
 
 ## Features
 
-- **Minimal**: ~150 lines, no bloat
+- **Plug-and-play**: Just add to config and restart - no manual setup
+- **Minimal**: ~200 lines, no bloat
 - **Project-relative**: State file in `.opencode/`, not global
 - **Completion detection**: Scans session messages for DONE promise
-- **Slash commands**: `/ralph-loop` and `/cancel-ralph`
-- **Skills**: AI can invoke the loop autonomously when appropriate
+- **Tools**: `/ralph-loop`, `/cancel-ralph`, and `/ralph-status`
 
 ## Credits
 

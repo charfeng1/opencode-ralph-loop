@@ -117,6 +117,79 @@ export default async function RalphLoopPlugin(ctx: any) {
   const directory = ctx.directory || process.cwd();
 
   return {
+    // Register tools (slash commands)
+    tool: {
+      "ralph-loop": {
+        description: "Start Ralph Loop - auto-continues until task completion. Use: /ralph-loop <task description>",
+        parameters: {
+          type: "object",
+          properties: {
+            task: {
+              type: "string",
+              description: "The task to work on until completion"
+            },
+            maxIterations: {
+              type: "number",
+              description: "Maximum iterations (default: 100)"
+            }
+          },
+          required: ["task"]
+        },
+        async execute({ task, maxIterations = 100 }: { task: string; maxIterations?: number }) {
+          const state: RalphState = {
+            active: true,
+            iteration: 0,
+            maxIterations,
+            prompt: task
+          };
+          writeState(directory, state);
+
+          return `Ralph Loop started (max ${maxIterations} iterations).
+
+Task: ${task}
+
+I will auto-continue until the task is complete. When fully done, I will output \`<promise>DONE</promise>\` to signal completion.
+
+Use /cancel-ralph to stop early.`;
+        }
+      },
+
+      "cancel-ralph": {
+        description: "Cancel active Ralph Loop",
+        parameters: {
+          type: "object",
+          properties: {}
+        },
+        async execute() {
+          const state = readState(directory);
+          if (!state.active) {
+            return "No active Ralph Loop to cancel.";
+          }
+          const iterations = state.iteration;
+          clearState(directory);
+          return `Ralph Loop cancelled after ${iterations} iteration(s).`;
+        }
+      },
+
+      "ralph-status": {
+        description: "Check Ralph Loop status",
+        parameters: {
+          type: "object",
+          properties: {}
+        },
+        async execute() {
+          const state = readState(directory);
+          if (!state.active) {
+            return "No active Ralph Loop.";
+          }
+          return `Ralph Loop active:
+- Iteration: ${state.iteration}/${state.maxIterations}
+- Task: ${state.prompt || "(no prompt)"}`;
+        }
+      }
+    },
+
+    // Event hook for auto-continuation
     event: async ({ event }: { event: { type: string; properties?: { sessionID?: string } } }) => {
       if (event.type === "session.idle") {
         const sessionId = event.properties?.sessionID;
