@@ -5,7 +5,7 @@ import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 
 // Types
-export interface RalphState {
+interface RalphState {
   active: boolean;
   iteration: number;
   maxIterations: number;
@@ -16,7 +16,7 @@ export interface RalphState {
 // Constants
 const STATE_FILENAME = "ralph-loop.local.md";
 const OPENCODE_CONFIG_DIR = join(homedir(), ".config/opencode");
-export const COMPLETION_TAG = /<promise>\s*DONE\s*<\/promise>/is;
+const COMPLETION_TAG = /<promise>\s*DONE\s*<\/promise>/is;
 
 // Get plugin root directory
 function getPluginRoot(): string {
@@ -81,7 +81,7 @@ function getStateFile(directory: string): string {
 }
 
 // Parse markdown frontmatter state. Regex accepts CRLF for cross-platform state files.
-export function parseState(content: string): RalphState {
+function parseState(content: string): RalphState {
   const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!match) return { active: false, iteration: 0, maxIterations: 100 };
 
@@ -105,7 +105,7 @@ export function parseState(content: string): RalphState {
 }
 
 // Serialize state to markdown frontmatter
-export function serializeState(state: RalphState): string {
+function serializeState(state: RalphState): string {
   const lines = [
     "---",
     `active: ${state.active}`,
@@ -184,7 +184,7 @@ async function isComplete(client: any, sessionId: string, directory: string): Pr
 }
 
 // Main plugin
-export default async function RalphLoopPlugin(ctx: any) {
+const RalphLoopPlugin = async (ctx: any) => {
   const directory = ctx.directory || process.cwd();
   const client = ctx.client;
 
@@ -316,4 +316,6 @@ ${state.prompt || "(no task specified)"}`;
       }
     }
   };
-}
+};
+
+export { RalphLoopPlugin };
