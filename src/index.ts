@@ -3,6 +3,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync, unlinkSync, cpSync 
 import { homedir } from "os";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
+import { COMPLETION_TAG } from "./completion.ts";
 
 // Types
 export interface RalphState {
@@ -16,7 +17,6 @@ export interface RalphState {
 // Constants
 const STATE_FILENAME = "ralph-loop.local.md";
 const OPENCODE_CONFIG_DIR = join(homedir(), ".config/opencode");
-export const COMPLETION_TAG = /<promise>\s*DONE\s*<\/promise>/is;
 
 // Get plugin root directory
 function getPluginRoot(): string {
