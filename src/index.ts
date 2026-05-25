@@ -4,6 +4,7 @@ import { homedir } from "os";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { COMPLETION_TAG } from "./completion.ts";
+import { RALPH_COMMANDS, STATE_FILENAME } from "./commands.ts";
 
 // Types
 export interface RalphState {
@@ -14,8 +15,6 @@ export interface RalphState {
   prompt?: string;
 }
 
-// Constants
-const STATE_FILENAME = "ralph-loop.local.md";
 const OPENCODE_CONFIG_DIR = join(homedir(), ".config/opencode");
 
 // Get plugin root directory
@@ -30,46 +29,28 @@ function getPluginRoot(): string {
   }
 }
 
-// Auto-copy skills and commands to opencode config on first run
-function setupSkillsAndCommands(): void {
+// Auto-copy skills to opencode config on first run. opencode reads from
+// ~/.config/opencode/skills/ (plural). Earlier versions wrote to /skill/
+// (singular) — that path is no longer scanned. Slash commands are NOT
+// copied here anymore; they self-register via the `config` hook below.
+function setupSkills(): void {
   const pluginRoot = getPluginRoot();
-  const skillsDir = join(OPENCODE_CONFIG_DIR, "skill");
-  const commandsDir = join(OPENCODE_CONFIG_DIR, "command");
+  const skillsDir = join(OPENCODE_CONFIG_DIR, "skills");
 
-  // Copy skills
   const pluginSkillsDir = join(pluginRoot, "skills");
-  if (existsSync(pluginSkillsDir)) {
-    const skills = ["ralph-loop", "cancel-ralph", "help"];
-    for (const skill of skills) {
-      const srcSkillDir = join(pluginSkillsDir, skill);
-      const destSkillDir = join(skillsDir, skill);
+  if (!existsSync(pluginSkillsDir)) return;
 
-      if (existsSync(srcSkillDir) && !existsSync(destSkillDir)) {
-        try {
-          mkdirSync(destSkillDir, { recursive: true });
-          cpSync(srcSkillDir, destSkillDir, { recursive: true });
-        } catch {
-          // Silent fail
-        }
-      }
-    }
-  }
-
-  // Copy commands
-  const pluginCommandsDir = join(pluginRoot, "commands");
-  if (existsSync(pluginCommandsDir)) {
-    const commands = ["ralph-loop.md", "cancel-ralph.md", "help.md"];
-    for (const cmd of commands) {
-      const srcCmd = join(pluginCommandsDir, cmd);
-      const destCmd = join(commandsDir, cmd);
-
-      if (existsSync(srcCmd) && !existsSync(destCmd)) {
-        try {
-          mkdirSync(commandsDir, { recursive: true });
-          cpSync(srcCmd, destCmd);
-        } catch {
-          // Silent fail
-        }
+  // Skills directories are co-located with command names; deriving from
+  // RALPH_COMMANDS keeps the two in lockstep when new commands are added.
+  for (const skill of Object.keys(RALPH_COMMANDS)) {
+    const srcSkillDir = join(pluginSkillsDir, skill);
+    const destSkillDir = join(skillsDir, skill);
+    if (existsSync(srcSkillDir) && !existsSync(destSkillDir)) {
+      try {
+        mkdirSync(destSkillDir, { recursive: true });
+        cpSync(srcSkillDir, destSkillDir, { recursive: true });
+      } catch {
+        // Silent fail
       }
     }
   }
@@ -188,10 +169,22 @@ export default async function RalphLoopPlugin(ctx: any) {
   const directory = ctx.directory || process.cwd();
   const client = ctx.client;
 
-  // Auto-setup skills and commands on first run
-  setupSkillsAndCommands();
+  // Auto-setup skills on first run. Slash commands self-register via the
+  // `config` hook below.
+  setupSkills();
 
   return {
+    // Self-register slash commands. opencode's `config` hook fires while
+    // assembling the runtime config; mutating `input.command` adds entries
+    // to the command dict, no file copying needed. User-defined entries in
+    // opencode.json take precedence (we only set absent names).
+    config: async (input: any) => {
+      input.command = input.command ?? {};
+      for (const [name, def] of Object.entries(RALPH_COMMANDS)) {
+        if (!input.command[name]) input.command[name] = def;
+      }
+    },
+
     // Register tools using the @opencode-ai/plugin SDK format.
     // The `args` field (Zod schema shape) is required — opencode calls
     // Object.entries(tool.args) internally. Using the old JSON Schema
