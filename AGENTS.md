@@ -25,6 +25,7 @@ npm test            # vitest run, 23 tests
 
 - Plugin tools MUST use `tool({ args: {...} })` from `@opencode-ai/plugin`. The raw JSON-Schema `parameters: {...}` form crashes opencode 1.14+ (`Object.entries(undefined)`). See #4.
 - `tool.schema` is re-exported zod. Use `tool.schema.string()` (function), not `tool.schema.string` (property).
+- `src/index.ts` may only export functions (or `{ server: fn }` shapes). opencode 1.15+ iterates `Object.values(module)` of the entrypoint and throws on any non-function value. Put RegExps, constants, or other non-function values in sibling modules (`src/completion.ts`) and import without re-exporting. See #14 / #15.
 - No build step. Ships `src/*.ts` directly via `"main": "src/index.ts"`.
 - `engines.node: >=18` is the runtime contract. Tests need Node 20+ (vitest 4 imports `node:util.styleText`).
 

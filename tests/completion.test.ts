@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { COMPLETION_TAG } from "../src/index.ts";
+import { COMPLETION_TAG } from "../src/completion.ts";
 
 describe("COMPLETION_TAG regex", () => {
   it("matches the canonical form", () => {
