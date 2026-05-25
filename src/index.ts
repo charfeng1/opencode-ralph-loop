@@ -30,50 +30,114 @@ function getPluginRoot(): string {
   }
 }
 
-// Auto-copy skills and commands to opencode config on first run
-function setupSkillsAndCommands(): void {
+// Auto-copy skills to opencode config on first run. opencode reads from
+// ~/.config/opencode/skills/ (plural). Earlier versions wrote to /skill/
+// (singular) — that path is no longer scanned. Slash commands are NOT
+// copied here anymore; they self-register via the `config` hook below.
+function setupSkills(): void {
   const pluginRoot = getPluginRoot();
-  const skillsDir = join(OPENCODE_CONFIG_DIR, "skill");
-  const commandsDir = join(OPENCODE_CONFIG_DIR, "command");
+  const skillsDir = join(OPENCODE_CONFIG_DIR, "skills");
 
-  // Copy skills
   const pluginSkillsDir = join(pluginRoot, "skills");
-  if (existsSync(pluginSkillsDir)) {
-    const skills = ["ralph-loop", "cancel-ralph", "help"];
-    for (const skill of skills) {
-      const srcSkillDir = join(pluginSkillsDir, skill);
-      const destSkillDir = join(skillsDir, skill);
+  if (!existsSync(pluginSkillsDir)) return;
 
-      if (existsSync(srcSkillDir) && !existsSync(destSkillDir)) {
-        try {
-          mkdirSync(destSkillDir, { recursive: true });
-          cpSync(srcSkillDir, destSkillDir, { recursive: true });
-        } catch {
-          // Silent fail
-        }
-      }
-    }
-  }
-
-  // Copy commands
-  const pluginCommandsDir = join(pluginRoot, "commands");
-  if (existsSync(pluginCommandsDir)) {
-    const commands = ["ralph-loop.md", "cancel-ralph.md", "help.md"];
-    for (const cmd of commands) {
-      const srcCmd = join(pluginCommandsDir, cmd);
-      const destCmd = join(commandsDir, cmd);
-
-      if (existsSync(srcCmd) && !existsSync(destCmd)) {
-        try {
-          mkdirSync(commandsDir, { recursive: true });
-          cpSync(srcCmd, destCmd);
-        } catch {
-          // Silent fail
-        }
+  const skills = ["ralph-loop", "cancel-ralph", "help"];
+  for (const skill of skills) {
+    const srcSkillDir = join(pluginSkillsDir, skill);
+    const destSkillDir = join(skillsDir, skill);
+    if (existsSync(srcSkillDir) && !existsSync(destSkillDir)) {
+      try {
+        mkdirSync(destSkillDir, { recursive: true });
+        cpSync(srcSkillDir, destSkillDir, { recursive: true });
+      } catch {
+        // Silent fail
       }
     }
   }
 }
+
+// Inline slash-command templates. Mirror what commands/*.md used to be,
+// minus the per-file YAML frontmatter (description is a top-level field
+// on the config-block entry). Mutating input.command via the config hook
+// is opencode's supported way to self-register slash commands from a
+// plugin — no file copying, no path conventions.
+const RALPH_COMMANDS = {
+  "ralph-loop": {
+    description: "Start Ralph Loop - auto-continues until task completion",
+    template: `Start an iterative development loop that automatically continues until the task is complete.
+
+Create the state file in the project directory:
+
+\`\`\`bash
+mkdir -p .opencode && cat > .opencode/ralph-loop.local.md << 'EOF'
+---
+active: true
+iteration: 0
+maxIterations: 100
+---
+
+$ARGUMENTS
+EOF
+\`\`\`
+
+Now begin working on the task: **$ARGUMENTS**
+
+When the task is FULLY completed, signal completion by outputting:
+
+\`\`\`
+<promise>DONE</promise>
+\`\`\`
+
+**IMPORTANT:** ONLY output this when the task is COMPLETELY and VERIFIABLY finished. Do NOT output false promises to escape the loop.
+
+Use \`/cancel-ralph\` to stop early.`,
+    agent: "build",
+  },
+  "cancel-ralph": {
+    description: "Cancel active Ralph Loop",
+    template: `Cancel the active Ralph Loop.
+
+\`\`\`bash
+if [ -f .opencode/ralph-loop.local.md ]; then
+  grep '^iteration:' .opencode/ralph-loop.local.md
+  rm -f .opencode/ralph-loop.local.md
+  echo "Ralph Loop cancelled."
+else
+  echo "No active Ralph Loop to cancel."
+fi
+\`\`\`
+
+Report the result to the user.`,
+    agent: "build",
+  },
+  "help": {
+    description: "Show Ralph Loop plugin help and available commands",
+    template: `# Ralph Loop Help
+
+## Available Commands
+
+- \`/ralph-loop <task>\` - Start an auto-continuation loop for the given task
+- \`/cancel-ralph\` - Stop an active Ralph Loop
+
+## Quick Start
+
+\`\`\`
+/ralph-loop Build a REST API with user authentication
+\`\`\`
+
+The AI will work on your task and automatically continue until it outputs \`<promise>DONE</promise>\` to signal completion.
+
+## How It Works
+
+1. Creates state file at \`.opencode/ralph-loop.local.md\`
+2. Works on task until idle
+3. If no \`<promise>DONE</promise>\` found, auto-continues
+4. Repeats until complete or max iterations (100) reached
+
+For more details, the AI can use the \`help\` skill.`,
+    agent: "build",
+  },
+};
 
 // Get state file path (project-relative)
 function getStateFile(directory: string): string {
@@ -188,10 +252,22 @@ export default async function RalphLoopPlugin(ctx: any) {
   const directory = ctx.directory || process.cwd();
   const client = ctx.client;
 
-  // Auto-setup skills and commands on first run
-  setupSkillsAndCommands();
+  // Auto-setup skills on first run. Slash commands self-register via the
+  // `config` hook below.
+  setupSkills();
 
   return {
+    // Self-register slash commands. opencode's `config` hook fires while
+    // assembling the runtime config; mutating `input.command` adds entries
+    // to the command dict, no file copying needed. User-defined entries in
+    // opencode.json take precedence (we only set absent names).
+    config: async (input: any) => {
+      input.command = input.command ?? {};
+      for (const [name, def] of Object.entries(RALPH_COMMANDS)) {
+        if (!input.command[name]) input.command[name] = def;
+      }
+    },
+
     // Register tools using the @opencode-ai/plugin SDK format.
     // The `args` field (Zod schema shape) is required — opencode calls
     // Object.entries(tool.args) internally. Using the old JSON Schema
