@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseState, serializeState, type RalphState } from "../src/index.ts";
+import { parseState, serializeState, type RalphState } from "../src/state.ts";
 
 describe("parseState", () => {
   it("returns defaults when no frontmatter is present", () => {
