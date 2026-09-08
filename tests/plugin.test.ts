@@ -3,10 +3,20 @@ import { mkdtempSync, existsSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import RalphLoopPlugin from "../src/index.ts";
+import * as entry from "../src/index.ts";
 
 const TOOL_NAMES = ["ralph-loop", "cancel-ralph", "help"] as const;
 
 describe("RalphLoopPlugin", () => {
+  // Regression for #19 / #20: OpenCode 1.18+ invokes every function export
+  // on the entrypoint as a plugin factory. Only `default` may be a function.
+  it("entrypoint exposes only the default plugin factory as a function", () => {
+    const functionExports = Object.entries(entry)
+      .filter(([, value]) => typeof value === "function")
+      .map(([name]) => name);
+    expect(functionExports).toEqual(["default"]);
+  });
+
   it("returns tool and event handlers", async () => {
     const directory = mkdtempSync(join(tmpdir(), "ralph-loop-plugin-"));
     const result = await RalphLoopPlugin({ directory, client: {} });
